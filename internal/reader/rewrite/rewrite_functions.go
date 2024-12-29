@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package rewrite // import "miniflux.app/v2/internal/reader/rewrite"
+package rewrite // import "github.com/fiatjaf/noflux/internal/reader/rewrite"
 
 import (
 	"encoding/base64"
@@ -13,11 +13,9 @@ import (
 	"strings"
 	"unicode"
 
-	"miniflux.app/v2/internal/config"
-
-	nethtml "golang.org/x/net/html"
-
 	"github.com/PuerkitoBio/goquery"
+	"github.com/fiatjaf/noflux/internal/config"
+	nethtml "golang.org/x/net/html"
 )
 
 var (

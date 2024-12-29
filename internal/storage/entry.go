@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package storage // import "miniflux.app/v2/internal/storage"
+package storage // import "github.com/fiatjaf/noflux/internal/storage"
 
 import (
 	"database/sql"
@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"miniflux.app/v2/internal/crypto"
-	"miniflux.app/v2/internal/model"
+	"github.com/fiatjaf/noflux/internal/crypto"
+	"github.com/fiatjaf/noflux/internal/model"
 
 	"github.com/lib/pq"
 )
@@ -225,6 +225,12 @@ func (s *Storage) entryExists(tx *sql.Tx, entry *model.Entry) (bool, error) {
 	return result, nil
 }
 
+func (s *Storage) getEntryLastChangedAt(tx *sql.Tx, entry *model.Entry) *time.Time {
+	var result time.Time
+	tx.QueryRow(`SELECT changed_at FROM entries WHERE feed_id=$1 AND hash=$2`, entry.FeedID, entry.Hash).Scan(&result)
+	return &result
+}
+
 func (s *Storage) IsNewEntry(feedID int64, entryHash string) bool {
 	var result bool
 	s.db.QueryRow(`SELECT true FROM entries WHERE feed_id=$1 AND hash=$2`, feedID, entryHash).Scan(&result)
@@ -291,6 +297,10 @@ func (s *Storage) RefreshFeedEntries(userID, feedID int64, entries model.Entries
 		if entryExists {
 			if updateExistingEntries {
 				err = s.updateEntry(tx, entry)
+			} else if !entry.CreatedAt.IsZero() && !entry.ChangedAt.Equal(entry.CreatedAt) {
+				if last := s.getEntryLastChangedAt(tx, entry); last == nil || last.Before(entry.ChangedAt) {
+					err = s.updateEntry(tx, entry)
+				}
 			}
 		} else {
 			err = s.createEntry(tx, entry)

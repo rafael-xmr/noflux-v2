@@ -1,22 +1,23 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package handler // import "miniflux.app/v2/internal/reader/handler"
+package handler // import "github.com/fiatjaf/noflux/internal/reader/handler"
 
 import (
 	"bytes"
 	"errors"
 	"log/slog"
 
-	"miniflux.app/v2/internal/config"
-	"miniflux.app/v2/internal/integration"
-	"miniflux.app/v2/internal/locale"
-	"miniflux.app/v2/internal/model"
-	"miniflux.app/v2/internal/reader/fetcher"
-	"miniflux.app/v2/internal/reader/icon"
-	"miniflux.app/v2/internal/reader/parser"
-	"miniflux.app/v2/internal/reader/processor"
-	"miniflux.app/v2/internal/storage"
+	"github.com/fiatjaf/noflux/internal/config"
+	"github.com/fiatjaf/noflux/internal/integration"
+	"github.com/fiatjaf/noflux/internal/locale"
+	"github.com/fiatjaf/noflux/internal/model"
+	"github.com/fiatjaf/noflux/internal/nostr"
+	"github.com/fiatjaf/noflux/internal/reader/fetcher"
+	"github.com/fiatjaf/noflux/internal/reader/icon"
+	"github.com/fiatjaf/noflux/internal/reader/parser"
+	"github.com/fiatjaf/noflux/internal/reader/processor"
+	"github.com/fiatjaf/noflux/internal/storage"
 )
 
 var (
@@ -102,6 +103,17 @@ func CreateFeed(store *storage.Storage, userID int64, feedCreationRequest *model
 
 	if !store.CategoryIDExists(userID, feedCreationRequest.CategoryID) {
 		return nil, locale.NewLocalizedErrorWrapper(ErrCategoryNotFound, "error.category_not_found")
+	}
+
+	if ok, profile := nostr.IsItNostr(feedCreationRequest.FeedURL); ok {
+		if subscription, err := nostr.CreateFeed(store, userID, feedCreationRequest, profile); err != nil {
+			return nil, locale.NewLocalizedErrorWrapper(err, "error.feed_not_found")
+		} else {
+			// Icon refresh here for now
+			iconChecker := icon.NewIconChecker(store, subscription)
+			iconChecker.UpdateOrCreateFeedIcon()
+			return subscription, nil
+		}
 	}
 
 	requestBuilder := fetcher.NewRequestBuilder()
@@ -239,6 +251,28 @@ func RefreshFeed(store *storage.Storage, userID, feedID int64, forceRefresh bool
 		)
 	}
 
+	iconChecker := icon.NewIconChecker(store, originalFeed)
+	if forceRefresh {
+		iconChecker.UpdateOrCreateFeedIcon()
+	} else {
+		iconChecker.CreateFeedIconIfMissing()
+	}
+
+	if ok, profile := nostr.IsItNostr(originalFeed.FeedURL); ok {
+		if err := nostr.RefreshFeed(store, userID, originalFeed, profile, forceRefresh); err != nil {
+			user, storeErr := store.UserByID(userID)
+			if storeErr != nil {
+				return locale.NewLocalizedErrorWrapper(storeErr, "error.database_error", storeErr)
+			}
+			localizedError := locale.NewLocalizedErrorWrapper(err, "error.feed_not_found")
+			originalFeed.WithTranslatedErrorMessage(localizedError.Translate(user.Language))
+			store.UpdateFeedError(originalFeed)
+			return localizedError
+		}
+		// we use a goto here so if the logic for the rest of the function is changed upstream we can merge it easily
+		goto updateFeedOnDatabase
+	}
+
 	if localizedError := responseHandler.LocalizedError(); localizedError != nil {
 		slog.Warn("Unable to fetch feed", slog.String("feed_url", originalFeed.FeedURL), slog.Any("error", localizedError.Error()))
 		user, storeErr := store.UserByID(userID)
@@ -335,14 +369,7 @@ func RefreshFeed(store *storage.Storage, userID, feedID int64, forceRefresh bool
 
 		originalFeed.EtagHeader = responseHandler.ETag()
 		originalFeed.LastModifiedHeader = responseHandler.LastModified()
-
 		originalFeed.IconURL = updatedFeed.IconURL
-		iconChecker := icon.NewIconChecker(store, originalFeed)
-		if forceRefresh {
-			iconChecker.UpdateOrCreateFeedIcon()
-		} else {
-			iconChecker.CreateFeedIconIfMissing()
-		}
 	} else {
 		slog.Debug("Feed not modified",
 			slog.Int64("user_id", userID),
@@ -358,6 +385,7 @@ func RefreshFeed(store *storage.Storage, userID, feedID int64, forceRefresh bool
 
 	originalFeed.ResetErrorCounter()
 
+updateFeedOnDatabase:
 	if storeErr := store.UpdateFeed(originalFeed); storeErr != nil {
 		localizedError := locale.NewLocalizedErrorWrapper(storeErr, "error.database_error", storeErr)
 		user, storeErr := store.UserByID(userID)

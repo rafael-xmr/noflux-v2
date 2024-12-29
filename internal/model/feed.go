@@ -1,15 +1,19 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package model // import "miniflux.app/v2/internal/model"
+package model // import "github.com/fiatjaf/noflux/internal/model"
 
 import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 	"time"
 
-	"miniflux.app/v2/internal/config"
+	"github.com/fiatjaf/noflux/internal/config"
+	"github.com/fiatjaf/noflux/internal/urllib"
+	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 // List of supported schedulers.
@@ -72,6 +76,17 @@ type Feed struct {
 type FeedCounters struct {
 	ReadCounters   map[int64]int `json:"reads"`
 	UnreadCounters map[int64]int `json:"unreads"`
+}
+
+// DisplayURL returns either the Nostr npub (i.e. not an URL at all) or the RSS domain name
+func (f *Feed) DisplayURL() string {
+	if strings.HasPrefix(f.FeedURL, "nostr:") {
+		_, data, _ := nip19.Decode(f.FeedURL[6:])
+		npub, _ := nip19.EncodePublicKey(data.(nostr.ProfilePointer).PublicKey)
+		return npub
+	} else {
+		return urllib.Domain(f.SiteURL)
+	}
 }
 
 func (f *Feed) String() string {

@@ -1,15 +1,16 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package icon // import "miniflux.app/v2/internal/reader/icon"
+package icon // import "github.com/fiatjaf/noflux/internal/reader/icon"
 
 import (
 	"log/slog"
 
-	"miniflux.app/v2/internal/config"
-	"miniflux.app/v2/internal/model"
-	"miniflux.app/v2/internal/reader/fetcher"
-	"miniflux.app/v2/internal/storage"
+	"github.com/fiatjaf/noflux/internal/config"
+	"github.com/fiatjaf/noflux/internal/model"
+	"github.com/fiatjaf/noflux/internal/nostr"
+	"github.com/fiatjaf/noflux/internal/reader/fetcher"
+	"github.com/fiatjaf/noflux/internal/storage"
 )
 
 type IconChecker struct {
@@ -35,6 +36,17 @@ func (c *IconChecker) fetchAndStoreIcon() {
 	requestBuilder.DisableHTTP2(c.feed.DisableHTTP2)
 
 	iconFinder := NewIconFinder(requestBuilder, c.feed.SiteURL, c.feed.IconURL)
+
+	// TODO: look at this
+	if nostr, iconUrl := nostr.GetIcon(c.feed); nostr {
+		icon, err := iconFinder.DownloadIcon(iconUrl)
+		if err == nil {
+			if err := c.store.StoreFeedIcon(c.feed.ID, icon); err == nil {
+				return
+			}
+		}
+	}
+
 	if icon, err := iconFinder.FindIcon(); err != nil {
 		slog.Debug("Unable to find feed icon",
 			slog.Int64("feed_id", c.feed.ID),

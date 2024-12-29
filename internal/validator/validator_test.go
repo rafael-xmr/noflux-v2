@@ -1,12 +1,12 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package validator // import "miniflux.app/v2/internal/validator"
+package validator // import "github.com/fiatjaf/noflux/internal/validator"
 
 import (
 	"testing"
 
-	"miniflux.app/v2/internal/locale"
+	"github.com/fiatjaf/noflux/internal/locale"
 )
 
 func TestIsValidURL(t *testing.T) {
@@ -52,8 +52,8 @@ func TestValidateDirection(t *testing.T) {
 
 func TestIsValidRegex(t *testing.T) {
 	scenarios := map[string]bool{
-		"(?i)miniflux": true,
-		"[":            false,
+		"(?i)noflux": true,
+		"[":          false,
 	}
 
 	for expr, expected := range scenarios {

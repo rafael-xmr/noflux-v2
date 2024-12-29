@@ -1,15 +1,15 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package storage // import "miniflux.app/v2/internal/storage"
+package storage // import "github.com/fiatjaf/noflux/internal/storage"
 
 import (
 	"database/sql"
 	"fmt"
 	"strings"
 
-	"miniflux.app/v2/internal/model"
-	"miniflux.app/v2/internal/timezone"
+	"github.com/fiatjaf/noflux/internal/model"
+	"github.com/fiatjaf/noflux/internal/timezone"
 )
 
 // FeedQueryBuilder builds a SQL query to fetch feeds.
@@ -129,7 +129,7 @@ func (f *FeedQueryBuilder) GetFeed() (*model.Feed, error) {
 
 // GetFeeds returns a list of feeds that match the condition.
 func (f *FeedQueryBuilder) GetFeeds() (model.Feeds, error) {
-	var query = `
+	query := `
 		SELECT
 			f.id,
 			f.feed_url,
@@ -239,7 +239,6 @@ func (f *FeedQueryBuilder) GetFeeds() (model.Feeds, error) {
 			&feed.NtfyEnabled,
 			&feed.NtfyPriority,
 		)
-
 		if err != nil {
 			return nil, fmt.Errorf(`store: unable to fetch feeds row: %w`, err)
 		}

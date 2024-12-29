@@ -1,15 +1,15 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package ui // import "miniflux.app/v2/internal/ui"
+package ui // import "github.com/fiatjaf/noflux/internal/ui"
 
 import (
 	"net/http"
 
-	"miniflux.app/v2/internal/http/request"
-	"miniflux.app/v2/internal/http/response/json"
-	"miniflux.app/v2/internal/http/route"
-	"miniflux.app/v2/internal/model"
+	"github.com/fiatjaf/noflux/internal/http/request"
+	"github.com/fiatjaf/noflux/internal/http/response/json"
+	"github.com/fiatjaf/noflux/internal/http/route"
+	"github.com/fiatjaf/noflux/internal/model"
 )
 
 func (h *handler) showWebManifest(w http.ResponseWriter, r *http.Request) {
@@ -54,19 +54,15 @@ func (h *handler) showWebManifest(w http.ResponseWriter, r *http.Request) {
 	}
 	themeColor := model.ThemeColor(request.UserTheme(r), "light")
 	manifest := &webManifest{
-		Name:            "Miniflux",
-		ShortName:       "Miniflux",
+		Name:            "Noflux",
+		ShortName:       "Noflux",
 		Description:     "Minimalist Feed Reader",
 		Display:         displayMode,
 		StartURL:        route.Path(h.router, "login"),
 		BackgroundColor: themeColor,
 		Icons: []webManifestIcon{
 			{Source: route.Path(h.router, "appIcon", "filename", "icon-120.png"), Sizes: "120x120", Type: "image/png", Purpose: "any"},
-			{Source: route.Path(h.router, "appIcon", "filename", "icon-192.png"), Sizes: "192x192", Type: "image/png", Purpose: "any"},
-			{Source: route.Path(h.router, "appIcon", "filename", "icon-512.png"), Sizes: "512x512", Type: "image/png", Purpose: "any"},
 			{Source: route.Path(h.router, "appIcon", "filename", "maskable-icon-120.png"), Sizes: "120x120", Type: "image/png", Purpose: "maskable"},
-			{Source: route.Path(h.router, "appIcon", "filename", "maskable-icon-192.png"), Sizes: "192x192", Type: "image/png", Purpose: "maskable"},
-			{Source: route.Path(h.router, "appIcon", "filename", "maskable-icon-512.png"), Sizes: "512x512", Type: "image/png", Purpose: "maskable"},
 		},
 		ShareTarget: webManifestShareTarget{
 			Action:  route.Path(h.router, "bookmarklet"),

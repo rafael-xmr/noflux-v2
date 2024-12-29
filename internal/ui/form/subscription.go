@@ -1,14 +1,15 @@
-// SPDX-FileCopyrightText: Copyright The Miniflux Authors. All rights reserved.
+// SPDX-FileCopyrightText: Copyright The Noflux Authors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package form // import "miniflux.app/v2/internal/ui/form"
+package form // import "github.com/fiatjaf/noflux/internal/ui/form"
 
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
-	"miniflux.app/v2/internal/locale"
-	"miniflux.app/v2/internal/validator"
+	"github.com/fiatjaf/noflux/internal/locale"
+	"github.com/fiatjaf/noflux/internal/validator"
 )
 
 // SubscriptionForm represents the subscription form.
@@ -36,6 +37,14 @@ func (s *SubscriptionForm) Validate() *locale.LocalizedError {
 		return locale.NewLocalizedError("error.feed_mandatory_fields")
 	}
 
+	// normalize URL before validating
+	s.URL = strings.TrimSpace(s.URL)
+	if strings.HasPrefix(s.URL, "npub1") || strings.HasPrefix(s.URL, "nprofile1") ||
+		(strings.Contains(s.URL, "@") && !strings.HasPrefix(s.URL, "nostr:")) {
+		s.URL = "nostr:" + s.URL
+	} else if !strings.HasPrefix(s.URL, "nostr:") && !strings.HasPrefix(s.URL, "http") {
+		s.URL = "https://" + s.URL
+	}
 	if !validator.IsValidURL(s.URL) {
 		return locale.NewLocalizedError("error.invalid_feed_url")
 	}
