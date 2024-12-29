@@ -90,7 +90,7 @@ func RefreshFeed(
 	evchan := NostrSdk.Pool.SubManyEose(ctx, relays, nostr.Filters{
 		{
 			Authors: []string{profile.PubKey},
-			Kinds:   []int{nostr.KindArticle},
+			Kinds:   []int{nostr.KindArticle, nostr.KindTextNote},
 			Limit:   300,
 		},
 	})
@@ -105,15 +105,17 @@ func RefreshFeed(
 			}
 		}
 
-		naddr, err := nip19.EncodeEntity(event.PubKey, event.Kind, event.Tags.GetD(), relays)
+		nevent, err := nip19.EncodeEvent(event.GetID(), relays, profile.PubKey)
 		if err != nil {
 			continue
 		}
 
-		title := ""
+		title := event.Content
 		titleTag := event.Tags.GetFirst([]string{"title", ""})
+		content := extractImageAndCreateHTML(event.Content)
 		if titleTag != nil && len(*titleTag) >= 2 {
 			title = (*titleTag)[1]
+			content = replaceNostrURLsWithHTMLTags(nip23.MarkdownToHTML(event.Content))
 		}
 
 		entry := &model.Entry{
@@ -121,9 +123,9 @@ func RefreshFeed(
 			CreatedAt: publishedAt,
 			ChangedAt: eventTime,
 			Title:     title,
-			Content:   replaceNostrURLsWithHTMLTags(nip23.MarkdownToHTML(event.Content)),
-			URL:       fmt.Sprintf("https://njump.me/%s", naddr),
-			Hash:      fmt.Sprintf("nostr:%s:%s", event.PubKey, event.Tags.GetD()),
+			Content:   content,
+			URL:       fmt.Sprintf("https://njump.me/%s", nevent),
+			Hash:      fmt.Sprintf("nostr:%s:%s", event.PubKey, event.ID),
 		}
 
 		updatedFeed.Entries = append(updatedFeed.Entries, entry)

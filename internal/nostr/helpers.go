@@ -11,10 +11,20 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 )
 
+func extractImageAndCreateHTML(input string) string {
+    urlRegex := regexp.MustCompile(`(https?://\S+(?:jpg|jpeg|gif|png))`)
+    
+    result := urlRegex.ReplaceAllStringFunc(input, func(match string) string {
+        return fmt.Sprintf(`<img src="%s" alt="Extracted image">`, match)
+    })
+    
+    return result
+}
+
 var nostrEveryMatcher = regexp.MustCompile(`nostr:((npub|note|nevent|nprofile|naddr)1[a-z0-9]+)\b`)
 
 func replaceNostrURLsWithHTMLTags(input string) string {
-	// match and replace npup1, nprofile1, note1, nevent1, etc
+	// match and replace npub1, nprofile1, note1, nevent1, etc
 	names := xsync.NewMapOf[string, string]()
 	wg := sync.WaitGroup{}
 
